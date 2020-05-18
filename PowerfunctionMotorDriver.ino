@@ -9,32 +9,37 @@
 // Stand:         15.05.2020
 // ========================================================================================
 
-#define PIN_INPUT_1 A3
-#define PIN_INPUT_2 A2
+#define PIN_INPUT_A A3                // pwm input 1 for motor A
+#define PIN_INPUT_B A2                // pwm input 2 for motor B
 
-#define PIN_OUTPUT_A1 9              // pwm pin to control M1 output
-#define PIN_OUTPUT_A2 6              // pwm pin to control M1 output
-#define PIN_OUTPUT_B1 5              // pwm pin to control M1 output
-#define PIN_OUTPUT_B2 3              // pwm pin to control M1 output
+#define PIN_OUTPUT_A1 9               // pwm pin to control A1 output
+#define PIN_OUTPUT_A2 6               // pwm pin to control A2 output
+#define PIN_OUTPUT_B1 5               // pwm pin to control B1 output
+#define PIN_OUTPUT_B2 3               // pwm pin to control B2 output
 
-int DeathbandPlusMinus = 10;
+int VehicleMode = 0;                  // 0 = Car, Input 1 for speed and input 2 for steer
+                                      // 1 = Tracked vehicle, Input 1 for speed and input 2 for steer
+                                      // 2 = Tracked vehicle, Input 1 for speed motor A and Input 2 for speed motor B
 
-boolean Reverse1 = true;
-int InputMiddle1 = 1491;
-int InputMin1 = 1073;
-int InputMax1 = 1895;
+int DeathbandPlusMinus = 10;          // Tolerance range in which no reaction should take 
+                                      // place when sticks are in the middle position.
 
-boolean Reverse2 = true;
-int InputMiddle2 = 1400;
-int InputMin2 = 1102;
-int InputMax2 = 1889;
+boolean ReverseA = true;              // change direction signal output for motor A
+int InputMiddleA = 1491;              // middel state of the input signal. Example: stick on neutral position
+int InputMinA = 1073;                 // minimum value of input signal. Example: stick is move complete down
+int InputMaxA = 1895;                 // minimum value of input signal. Example: stick is move complete up
+
+boolean ReverseB = true;              // change direaction sinal output for motor B
+int InputMiddleB = 1400;              // middel state of the input signal. Example: stick on neutral position
+int InputMinB = 1102;                 // minimum value of input signal. Example: stick is move complete down
+int InputMaxB = 1889;                 // minimum value of input signal. Example: stick is move complete up
 
 void setup() {
 
   //Serial.begin(115200);
 
-  pinMode(PIN_INPUT_1, INPUT);
-  pinMode(PIN_INPUT_2, INPUT);
+  pinMode(PIN_INPUT_A, INPUT);
+  pinMode(PIN_INPUT_B, INPUT);
 
   pinMode(PIN_OUTPUT_A1, OUTPUT);
   pinMode(PIN_OUTPUT_A2, OUTPUT);
@@ -44,12 +49,13 @@ void setup() {
 
 void loop() {
 
-  int readValue1 = pulseIn(PIN_INPUT_1, HIGH);
-  int readValue2 = pulseIn(PIN_INPUT_2, HIGH);
+  int readValueA = pulseIn(PIN_INPUT_A, HIGH);
+  int readValueB = pulseIn(PIN_INPUT_B, HIGH);
 
-  MotorA(readValue1);
-  MotorB(readValue2);
+  MotorA(readValueA);
+  MotorB(readValueB);
 
+// out comment it, if you looking the min, max and middle value of the inputs
 //  Serial.print("Anlaog 1: ");
 //  Serial.println(readValue1, DEC);
 //
@@ -58,27 +64,24 @@ void loop() {
 //  delay(100);
 }
 
-void MotorA(int readValue1) {
+void MotorA(int readValue) {
 
   int outputA1 = 0;
   int outputA2 = 0;
   
-  if(readValue1 > InputMiddle1 + DeathbandPlusMinus) {
-    int valueUp = readValue1 - InputMiddle1;
-    float rateUp = GetRate(InputMax1 - InputMiddle1); 
+  if(readValue > InputMiddleA + DeathbandPlusMinus) {
+    int valueUp = readValue - InputMiddleA;
+    float rateUp = GetRate(InputMaxA - InputMiddleA); 
     outputA1 = CutOffOutOfRange(rateUp * valueUp);
   }
 
-  if(readValue1 < InputMiddle1 - DeathbandPlusMinus) {
-    int valueDown = InputMiddle1 - readValue1;
-    float rateDown = GetRate(InputMiddle1 - InputMin1); 
+  if(readValue < InputMiddleA - DeathbandPlusMinus) {
+    int valueDown = InputMiddleA - readValue;
+    float rateDown = GetRate(InputMiddleA - InputMinA); 
     outputA2 = CutOffOutOfRange(rateDown * valueDown);
   }
 
-//  Serial.print("outputA1: "); Serial.println(outputA1, DEC);
-//  Serial.print("outputA2: "); Serial.println(outputA2, DEC);
-
-  if(Reverse1) {
+  if(ReverseA) {
     analogWrite(PIN_OUTPUT_A2, outputA1);  
     analogWrite(PIN_OUTPUT_A1, outputA2);
   }
@@ -94,21 +97,19 @@ void MotorB(int readValue) {
   int outputB1 = 0;
   int outputB2 = 0;
   
-  if(readValue > InputMiddle2 + DeathbandPlusMinus) {
-    int valueUp = readValue - InputMiddle2;
-    float rateUp = GetRate(InputMax2 - InputMiddle2);
+  if(readValue > InputMiddleB + DeathbandPlusMinus) {
+    int valueUp = readValue - InputMiddleB;
+    float rateUp = GetRate(InputMaxB - InputMiddleB);
     outputB1 = CutOffOutOfRange(rateUp * valueUp);
   }
 
-  if(readValue < InputMiddle2 - DeathbandPlusMinus) {
-    int valueDown = InputMiddle2 - readValue;
-    float rateDown = GetRate(InputMiddle2 - InputMin2); 
+  if(readValue < InputMiddleB - DeathbandPlusMinus) {
+    int valueDown = InputMiddleB - readValue;
+    float rateDown = GetRate(InputMiddleB - InputMinB); 
     outputB2 = CutOffOutOfRange(rateDown * valueDown);
   }
 
-//  Serial.print("outputB1: "); Serial.println(outputB1, DEC);
-//  Serial.print("outputB2: "); Serial.println(outputB2, DEC);
-  if(Reverse2) {
+  if(ReverseB) {
     analogWrite(PIN_OUTPUT_B2, outputB1);  
     analogWrite(PIN_OUTPUT_B1, outputB2);
   }
@@ -116,7 +117,6 @@ void MotorB(int readValue) {
     analogWrite(PIN_OUTPUT_B1, outputB1);  
     analogWrite(PIN_OUTPUT_B2, outputB2);
   }
-  
 }
 
 
