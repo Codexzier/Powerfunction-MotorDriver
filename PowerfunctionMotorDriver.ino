@@ -6,7 +6,7 @@
 // Controller:    Arduino Pro Mini
 // Receiver:      Can use a RC receiver with PWM outputs
 // Actor:         Motor Driver Modul MX1508
-// Stand:         21.05.2020
+// Stand:         21.06.2020
 // ========================================================================================
 
 #define PIN_INPUT_A A3                // pwm input 1 for motor A
@@ -27,7 +27,7 @@ int mVehicleMode = 1;                  // 0 = Car, Input 1 for speed and input 2
                                        //                 Input 2 for speed motor B
                                        // 1 = Tracked vehicle, Input 1 for speed and input 2 for steer
 
-boolean mVehicleMode_1_Steer = false;  // invert direction for steering
+boolean mVehicleMode_1_Steer = false;  // invert steering direction, only tracked vehicle 
 
 int mDeathbandPlusMinus = 10;          // Tolerance range in which no reaction should take 
                                        // place when sticks are in the middle position.
@@ -77,10 +77,10 @@ void loop() {
   }
   
   if(mSerialMonitor) {
-    Serial.print("Anlaog 1: ");
+    Serial.print("Input 1: ");
     Serial.print(readValueA, DEC);
   
-    Serial.print(", Anlaog 2: ");
+    Serial.print(", Input 2: ");
     Serial.println(readValueB, DEC);
     delay(100);
   }
