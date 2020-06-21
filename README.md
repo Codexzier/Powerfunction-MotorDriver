@@ -13,7 +13,7 @@ Remote control system and a receiver with pwm output signal.
 ## Build the driver
 For some more information to build the electronic speed control, look at my blog post.
 
-![Bild von der Schaltung](https://github.com/codexzier/PowerfunctionMotorDriver/Schaltung.jpg)
+![Bild von der Schaltung](https://github.com/Codexzier/Powerfunction-MotorDriver/blob/master/Schaltung.jpg)
 
 ## How to configure the motor driver 
 Have you build the motor driver, you can start setup the driver.
@@ -92,6 +92,6 @@ TIP: Or for only tracked vehicle, you must change:
  boolean mVehicleMode_1_Steer = false;
 ```
 
-## Have fun or send me message
+## Have fun or send me a message
 It is a simple project and this is my first complete writing readme file. But if you have any question, do not hesitete write a message.
 
