@@ -3,7 +3,7 @@ A motor driver to control two power function motors.
 
 This driver is a target remote control system with two channels like a car. It works for RC car with motor for speed and a servo for the steer. But specially it programmed for tracked vehicles with two motors to control. For my project, I used the 42095 Lego Stunt-Racer with power functions. That uses remote control with infrared. The disadvantage thing is, it doesn't work fine outside by sunshine.
 
-## Parts for build electronic speed control (ESC)
+## Parts for build a electronic speed control (ESC)
 Arduino mini pro 5V (you can used an other arduino)
 Motor driver module MX1508
 2x Servo cable
