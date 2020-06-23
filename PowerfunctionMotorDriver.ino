@@ -27,8 +27,8 @@ int mVehicleMode = 1;                  // 0 = Car, Input 1 for speed and input 2
                                        //                 Input 2 for speed motor B
                                        // 1 = Tracked vehicle, Input 1 for speed and input 2 for steer
 
-boolean mVehicleMode_1_Steer = false;  // invert steering direction, only tracked vehicle 
-
+boolean mVehicleModeSteerInvert = false;  // invert steering direction, only tracked vehicle 
+int mVehicleMode_2_DeathbandDriveDirection = 50;
 int mDeathbandPlusMinus = 10;          // Tolerance range in which no reaction should take 
                                        // place when sticks are in the middle position.
 
@@ -74,6 +74,9 @@ void loop() {
       VehicleMode_1(readValueA, readValueB);
       break;
     }
+    case(2): {
+      VehicleMode_2(readValueA, readValueB);
+    }
   }
   
   if(mSerialMonitor) {
@@ -87,7 +90,7 @@ void loop() {
 }
 
 // ========================================================================================
-// Map the input signal for tracked vehicle.
+// Map the input signal for tracked vehicle mode 1.
 // Channel 1 is for speed control
 // Channel 2 is for steer
 // ----------------------------------------------------------------------------------------
@@ -98,20 +101,17 @@ void VehicleMode_1(int valueA, int valueB){
   int speedValueA = valueA;
   int speedValueB = valueA;
   
-  int valueSteer = valueB - mInputMiddleB;
+  float tmp = GetValueSteer(valueB) * GetAcceleration(valueA);
+  int valueSteer = (int)tmp;
 
-  if(valueA > mInputMiddleA) {
-    SetSpeedValueMinus(valueSteer, &speedValueA, &speedValueB);
+  if(valueA > mInputMiddleA) {                                    // drive forward
+    SetDriveDirection(valueB, valueSteer, &speedValueA, &speedValueB);
   }
-  else {
-    SetSpeedValuePlus(valueSteer, &speedValueA, &speedValueB);
+  else {                                                          // drive backward
+    SetDriveDirection(valueB, valueSteer, &speedValueB, &speedValueA);
   }
   
-  if(mVehicleMode_1_Steer) {
-    int tmp = speedValueB;
-    speedValueB = speedValueA;
-    speedValueA = tmp;
-  }
+  SetSpeedSteerSwap(&speedValueA, &speedValueB);
   
   if(mSerialMonitor) {
     Serial.print("SpeedvalueA: ");
@@ -126,33 +126,129 @@ void VehicleMode_1(int valueA, int valueB){
 }
 
 // ========================================================================================
-// Substract from speed value for steering
+// Swap speed value a to b, and b to a.
 // ----------------------------------------------------------------------------------------
-// valueSteer  = value signal from channel 2
-// speedValueA = value signal from channel 1 for motor A
-// speedValueB = value signal from channel 1 for motor B
-void SetSpeedValueMinus(int valueSteer, int *speedValueA, int *speedValueB) {
-  if(valueSteer > 0) {
-    *speedValueB -= valueSteer;
-  }
-  else {
-    *speedValueA -= (valueSteer * -1);
+// speedValueA = for set to speedValueB
+// speedValueB = for set to speedValueA
+void SetSpeedSteerSwap(int *speedValueA, int *speedValueB){
+  if(mVehicleModeSteerInvert) {
+    int tmp2 = speedValueB;
+    *speedValueB = *speedValueA;
+    *speedValueA = tmp2;
   }
 }
 
 // ========================================================================================
-// Adds to the speed value for steering
+// set add speed value by steer value
 // ----------------------------------------------------------------------------------------
-// valueSteer  = value signal from channel 2
-// speedValueA = value signal from channel 1 for motor A
-// speedValueB = value signal from channel 1 for motor B
-void SetSpeedValuePlus(int valueSteer, int *speedValueA, int *speedValueB) {
-  if(valueSteer > 0) {
-    *speedValueB += valueSteer;
+// valueB      = input signal value for steer
+// valueSteer  = steer value to add
+// speedValueA = write to reference of speed value a
+// speedValueB = write to reference of speed value b
+void SetDriveDirection(int valueB, int valueSteer, int *speedValueA, int *speedValueB) {
+  if (valueB < mInputMiddleB) {
+      *speedValueA -= valueSteer;
+      *speedValueB += valueSteer;
   }
   else {
-    *speedValueA += (valueSteer * -1);
+      *speedValueA += valueSteer;
+      *speedValueB -= valueSteer;
   }
+}
+
+// ========================================================================================
+// Calculate acceleration for steering and speed value.
+// ----------------------------------------------------------------------------------------
+// valueA = raw input speed value
+// ----------------------------------------------------------------------------------------
+// RETURN
+// acceleration value
+float GetAcceleration(int valueA) {
+  int m = mInputMaxA - mInputMinA;
+  float n = GetCenterUpValue(valueA);
+  float o = n * 2.0;
+  float p = o / m;
+  return p;
+}
+
+// ========================================================================================
+// Get a positiv steer value.
+// ----------------------------------------------------------------------------------------
+// valueB = input signal for steering
+// ----------------------------------------------------------------------------------------
+// RETURN
+// postive steer value
+int GetValueSteer(int valueB) {
+  if(valueB > mInputMiddleB)
+  {
+      return valueB - mInputMiddleB;
+  }
+
+  return mInputMiddleB - valueB;
+}
+
+// ========================================================================================
+// Map the input signal for tracked vehicle mode 2.
+// Channel 1 is for speed control
+// Channel 2 is for steer
+// ----------------------------------------------------------------------------------------
+// valueA = Signal from channel 1
+// valueB = Siganl from channel 2
+void VehicleMode_2(int valueA, int valueB) {
+  int speedValueA = valueA;
+  int speedValueB = valueA;
+
+  float tmp = GetValueSteer(valueB) * GetAcceleration(valueA);
+  int valueSteer = (int)tmp;
+
+  if (valueA > mInputMiddleA + mVehicleMode_2_DeathbandDriveDirection) {      // drive forward
+      SetDriveDirection(valueB, valueSteer, &speedValueA, &speedValueB);
+  }
+  else if (valueA < mInputMiddleA - mVehicleMode_2_DeathbandDriveDirection) { // backward
+      SetDriveDirection(valueB, valueSteer, &speedValueB, &speedValueA);
+  }
+  else {
+      float deathbandAcceleration = GetValueSteer(valueB) * GetAccelerationDeathband(valueA);
+      SetDriveDirection(valueB, (int)deathbandAcceleration, &speedValueA, &speedValueB);
+  }
+
+  SetSpeedSteerSwap(&speedValueA, &speedValueB);
+
+  MotorA(speedValueA);
+  MotorB(speedValueB);
+}
+
+// ========================================================================================
+// Get acceleration by deathband. It used for drive left or right on stayed position.
+// ----------------------------------------------------------------------------------------
+// valueA = raw signal value for speed
+float GetAccelerationDeathband(int valueA){
+    int m = mVehicleMode_2_DeathbandDriveDirection;
+    float n = GetCenterUpValue(valueA);
+
+    if(n == 0){
+        return 1;
+    }
+
+    float p = n / m;
+
+    return 1 - p;
+}
+
+// ========================================================================================
+// Get value of speed
+// ----------------------------------------------------------------------------------------
+// valueA = raw signal value for speed
+// ----------------------------------------------------------------------------------------
+// RETURN
+// positive speed value
+float GetCenterUpValue(int valueA) {
+  if(valueA < mInputMiddleA)
+  {
+    return mInputMiddleA - valueA;
+  }
+
+  return valueA - mInputMiddleA;
 }
 
 // ========================================================================================
