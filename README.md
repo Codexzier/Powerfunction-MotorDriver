@@ -87,9 +87,11 @@ If steering left is go to the other.
 ```
  boolean mReverseB = true; 
 ```
-TIP: Or for only tracked vehicle, you must change:
+For tracked vehicle, you must change the vehicle mode:
+-  0 = Car, Input 1 for speed and input 2 for steer
+-  1 = Tracked vehicle, Input 1 for speed and input 2 for steer
 ```
- boolean mVehicleMode_1_Steer = false;
+ boolean mVehicleMode = 1;
 ```
 
 ## Have fun or send me a message
